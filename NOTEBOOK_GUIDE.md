@@ -90,7 +90,63 @@ The implementation demonstrates:
 - Integration with torchvision's NMS implementation
 - Significant performance improvements over CPU-based methods
 
-### 4. Real-time Inference
+### 4. CNN Model Training for Verification and Centroid Prediction
+
+This section implements a Convolutional Neural Network (CNN) model that serves two purposes:
+- Verifies if the template matches are true positives
+- Predicts the exact centroid coordinates within the detected regions
+
+```python
+class CNNDetector(nn.Module):
+    def __init__(self):
+        super(CNNDetector, self).__init__()
+        # Shared feature extraction
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        
+        # Classification branch
+        self.classifier = nn.Sequential(
+            nn.Linear(64 * 8 * 8, 128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(128, 1),
+            nn.Sigmoid()
+        )
+        
+        # Centroid prediction branch
+        self.regressor = nn.Sequential(
+            nn.Linear(64 * 8 * 8, 128),
+            nn.ReLU(),
+            nn.Linear(128, 2),
+            nn.Sigmoid()  # Normalized coordinates (0-1)
+        )
+```
+
+The implementation demonstrates:
+- How to create a multi-task CNN model for both classification and regression
+- How to prepare training data from CSV annotations
+- How to train the model with a combined loss function
+- How to export the model to TorchScript for deployment
+- How to visualize training metrics and model performance
+
+Training results are visualized with plots showing:
+- Classification accuracy (reaching >95%)
+- Centroid prediction error (measured in pixels)
+- Combined loss curves for training and validation sets
+- Example predictions on test images
+
+The trained model is exported to TorchScript format (`lbend_detector_scripted.pt`) for efficient deployment on edge devices.
+
+### 5. Real-time Inference
 
 This section builds on the PyTorch implementation for real-time video processing:
 
@@ -108,6 +164,22 @@ The implementation demonstrates:
 - How to calculate and display frames per second (FPS)
 - How to visualize detections in real-time
 
+## Edge-Optimized Implementation
+
+The notebook techniques are implemented in the standalone Python script `L_bent_detector_without_transformers.py`, which:
+- Provides a lightweight, transformer-free implementation optimized for edge devices
+- Achieves 20 FPS performance on Jetson Nano hardware
+- Uses a hybrid approach combining template matching for region proposals and CNN for verification
+- Features batch processing of candidate regions for efficient inference
+- Includes real-time visualization with FPS metrics and detection count
+
+This edge-optimized version makes several performance improvements:
+- Processes smaller input resolutions (150x150) for template matching
+- Uses OpenCV's efficient matchTemplate implementation
+- Applies Non-Maximum Suppression to filter duplicate detections
+- Utilizes the lightweight CNN for verification and precise centroid localization
+- Prioritizes inference speed while maintaining detection accuracy
+
 ## Results and Visualization
 
 Each section includes visualization of the detection results:
@@ -116,4 +188,4 @@ Each section includes visualization of the detection results:
 - Performance metrics (processing time, FPS)
 - Comparison between different approaches
 
-The notebook provides a comprehensive comparison of different object detection techniques, showing how to progress from basic implementations to optimized, real-time capable solutions.
+The notebook provides a comprehensive comparison of different object detection techniques, showing how to progress from basic implementations to optimized, real-time capable solutions suitable for edge deployment.
