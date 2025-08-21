@@ -26,7 +26,7 @@ This project provides advanced algorithms for detecting L-bent  parts in images 
 - **CNN-based Verification**: Uses trained neural networks to validate matches and predict exact centroids for precise robotic arm positioning
 - **Edge-optimized Version**: Lightweight implementation for edge devices without transformers, enabling direct integration with robotic control systems
 
-![FFT Analysis](Results/fft_analysis.png)
+![FFT Analysis](Results/fft analysis.png)
 *Frequency domain analysis showing the high-pass filtering effect on template matching*
 
 ## Industrial Bin-Picking Application
