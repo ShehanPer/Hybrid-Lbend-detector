@@ -6,7 +6,7 @@ A computer vision project that implements pattern/template-based object detectio
 
 ## Overview
 
-This project provides advanced algorithms for detecting L-bent metal parts in images for robotic bin-picking applications based on template matching in the frequency domain with CNN verification. The implementation offers several advantages over traditional spatial domain template matching and is optimized for industrial automation:
+This project provides advanced algorithms for detecting L-bent  parts in images for robotic bin-picking applications based on template matching in the frequency domain with CNN verification. The implementation offers several advantages over traditional spatial domain template matching and is optimized for industrial automation:
 
 - **Rotation invariance**: Detects objects at different orientations (critical for bin-picking scenarios)
 - **Multiple scale detection**: Identifies objects at various scales and distances from camera
@@ -31,7 +31,7 @@ This project provides advanced algorithms for detecting L-bent metal parts in im
 
 ## Industrial Bin-Picking Application
 
-This system addresses key challenges in industrial bin-picking of L-bent metal parts:
+This system addresses key challenges in industrial bin-picking of L-bent parts:
 
 1. **Part Recognition in Cluttered Environments**: Uses frequency domain features to distinguish parts even in crowded bins
 2. **Accurate Pick-Point Determination**: CNN-predicted centroids provide precise coordinates for robotic grippers
