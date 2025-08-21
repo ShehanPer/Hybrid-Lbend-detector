@@ -1,6 +1,6 @@
 # Pattern-Based Object Detection for Bin-Picking Robots
 
-A computer vision project that implements pattern/template-based object detection using Fast Fourier Transform (FFT), frequency domain techniques, and CNN-based verification. Specifically designed for industrial bin-picking robots to accurately locate and identify objects in cluttered environments.
+A computer vision project that implements pattern/template-based object detection using various methods like Fast Fourier Transform (FFT), template matching, frequency domain techniques, and CNN-based verification. Specifically designed for industrial bin-picking robots to accurately locate and identify objects in cluttered environments. For more detaile, Please refer the **model_evaluation.pdf** and **NOTEBOOK_GUIDE.md**  
 
 ![Detection Results](Results/detections_output_batched_angle.png)
 
@@ -26,7 +26,8 @@ This project provides advanced algorithms for detecting L-bent  parts in images 
 - **CNN-based Verification**: Uses trained neural networks to validate matches and predict exact centroids for precise robotic arm positioning
 - **Edge-optimized Version**: Lightweight implementation for edge devices without transformers, enabling direct integration with robotic control systems
 
-![FFT Analysis](Results/fft analysis.png)
+![FFT Analysis](Results/fft%20analysis.png)
+
 *Frequency domain analysis showing the high-pass filtering effect on template matching*
 
 ## Industrial Bin-Picking Application
@@ -286,3 +287,85 @@ Planned enhancements for the bin-picking system include:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Region Proposal Network (RPN) + CNN Model Details
+
+This project focuses on a hybrid approach for pattern-based object detection, particularly for L-bend shaped objects in industrial bin-picking scenarios. The core pipeline acts as a Region Proposal Network (RPN) by generating candidate regions using classical template matching techniques, followed by CNN-based validation and precise localization. This combines the efficiency of traditional computer vision with the accuracy of deep learning.
+
+### Project Evolution and Methodology
+
+- **Experimental Phase: FFT Investigation**: Initially explored FFT-based template matching with high-pass filtering in the frequency domain to enhance edge features and normalized dot product (cosine similarity) for pattern matching. While theoretically sound, it did not provide reliable performance for RPN requirements and was rejected for production.
+
+- **Production Methods: Classical + Modern Hybrid**:
+  1. **OpenCV Template Matching (Primary RPN Method)**: Uses `cv2.matchTemplate` with `TM_CCOEFF_NORMED` for standard matching. Supports multiple rotation angles for orientation independence. Provides reliable, well-tested results as the primary method for generating candidate regions.
+  2. **PyTorch Batched Convolution (High-Performance Alternative)**: GPU-accelerated template matching using batched convolution. Performs single-line convolution for all rotated templates simultaneously, optimized for real-time performance when GPU is available.
+  3. **CNN Validation & Localization (Final Stage)**: Custom CNN architecture for validating L-bend objects in proposed regions. Features a dual-head network: one for classification confidence (binary: L-bend or not) and another for precise centroid regression. Effectively filters false positives from the template matching stage.
+
+### Final Architecture
+
+The end-to-end pipeline is designed as follows:
+
+Input Image → Template Matching (RPN) → Candidate Regions → CNN Validation → Final Detections
+
+- **Raw Frame**: Input from industrial camera.
+- **OpenCV/PyTorch Template Match**: Generates rotation-invariant bounding boxes as region proposals.
+- **Rotation-Invariant Bounding Boxes**: Candidate regions from multi-angle matching.
+- **Confidence + Centroid**: CNN validates proposals and regresses precise centroids.
+- **Verified L-bends**: Final detections ready for robotic picking.
+
+This RPN + CNN hybrid ensures efficient proposal generation (via template matching) and accurate validation/localization (via CNN), making it suitable for real-time bin-picking.
+
+### Key Design Decisions
+
+- **FFT Approach Rejected**: Despite theoretical advantages (e.g., robustness to illumination), FFT-based filtering proved unreliable for practical RPN applications in cluttered bins.
+- **OpenCV as Primary RPN**: Chosen for consistent, predictable results in generating region proposals.
+- **PyTorch for Speed**: Batched convolution used when GPU acceleration is needed for high-throughput industrial settings.
+- **CNN Validation**: Added deep learning stage to reduce false positives (common in template matching) and provide precise localization for robotic grippers.
+
+### Performance Characteristics
+
+- **Reliability**: OpenCV template matching provides consistent, repeatable region proposals.
+- **Speed**: PyTorch batched approach achieves >20 FPS on GPU, suitable for industrial cycle times.
+- **Accuracy**: CNN validation significantly reduces false positive rates (>95% classification accuracy) and provides centroid localization with <5 pixel error.
+- **Robustness**: Multi-angle template matching handles arbitrary object orientations in bin-picking environments.
+
+### Implementation Notes
+
+The notebook demonstrates:
+1. FFT exploration (for educational/research purposes, though rejected for production).
+2. OpenCV implementation (production-ready RPN for region proposals).
+3. PyTorch acceleration (high-performance alternative for RPN).
+4. CNN training pipeline (for validation and localization).
+5. Real-time inference (complete deployment solution integrating RPN + CNN).
+6. Model export (TorchScript and ONNX for deployment on edge devices like Jetson Nano).
+
+This ensures research completeness and practical deployment readiness, with documentation on method selections.
+
+### CNN Model Architecture and Training
+
+The CNN model (`CNNDetector`) is a custom dual-head network for object validation and centroid prediction:
+
+- **Backbone**: Sequential convolutional layers with batch normalization, ReLU activation, and max pooling:
+  - Conv2d(3, 16, kernel=3, stride=2)
+  - Conv2d(16, 32, kernel=3, stride=1)
+  - Conv2d(32, 64, kernel=3, stride=1)
+  - Conv2d(64, 128, kernel=3, stride=1)
+  - AdaptiveAvgPool2d(1)
+
+- **Classification Head**: Linear(128, 1) with sigmoid activation for binary classification (L-bend probability).
+- **Regression Head**: Linear(128, 2) with sigmoid activation for normalized centroid coordinates [0,1].
+
+- **Custom Dataset (`LBendDataset`)**: Loads cropped images from region proposals, with labels and centroids from CSV annotations. Applies transformations like color jitter and normalization.
+
+- **Training Process**:
+  - Data splitting: 80/20 train/validation with stratification.
+  - Losses: Binary Cross-Entropy (classification) + 5x MSE (regression for emphasis on localization).
+  - Optimizer: Adam with learning rate scheduler (ReduceLROnPlateau).
+  - Epochs: 40 (converges in <50).
+  - Batch Size: 16.
+  - Metrics: Tracked train/val losses (total, cls, reg), validation accuracy.
+  - Best model saved based on val loss; exported to TorchScript for fast inference.
+
+- **Dataset Creation**: Script crops regions from COCO-style annotations, adds padding, resizes to 96x96, and saves for CNN training.
+
+This RPN + CNN setup filters template matching proposals, validates true L-bends, and predicts centroids for precise robotic picking, improving overall system accuracy in industrial applications.
